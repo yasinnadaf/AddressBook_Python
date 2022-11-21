@@ -1,4 +1,7 @@
+import csv
+import json
 import logging
+import os.path
 
 logging.basicConfig(filename='AddressBook_logs.log', encoding='utf-8', level=logging.DEBUG)
 
@@ -14,6 +17,14 @@ class Contact:
         self.pin = contacts_dict.get("pin")
         self.phone = contacts_dict.get("phone")
         self.email = contacts_dict.get("email")
+
+    def get_cont_dict(self):
+        return {'first_name': self.first_name, 'last_name': self.last_name, 'address': self.address, 'city': self.city,
+                'state': self.state, 'pin': self.pin, 'phone': self.phone, 'email': self.email}
+
+    def as_string(self):
+        return "{:<12}{:<12}{:<12}{:<12}{:<12}{:<12}{:<12}{:<12}"\
+            .format(self.first_name, self.last_name, self.address, self.city, self.state, self.pin, self.phone, self.email)
 
 
 class AddressBook:
@@ -37,11 +48,11 @@ class AddressBook:
         Function to display contact names in address book
         """
         try:
-            if self.contact_dict == {}:
+            if len(self.contact_dict) == 0:
                 print("No contacts to display")
             else:
                 for key, value in self.contact_dict.items():
-                    print(key)
+                    print("{:<10} {:<10}".format('Contact name-->', key))
         except Exception as e:
             print(e)
             logging.exception(e)
@@ -62,14 +73,13 @@ class AddressBook:
         Function to display contact details
         """
         try:
-            if self.contact_dict == {}:
+            if len(self.contact_dict) == 0:
                 print("No contacts to display")
             else:
+                print("{:<11} {:<11} {:<11} {:<11} {:<11} {:<11} {:<11} {:<11} ".format
+                      ('First Name', 'Last Name', 'Address', 'City', 'State', 'PIN', 'Phone', 'Email'))
                 for key, value in self.contact_dict.items():
-                    print("First Name : {}\nLast Name : {}\nAddress : {}\nCity : {}\nState : {}\n"
-                          "PIN : {}\nPhone : {}\nEmail : {}\n"
-                          .format(value.first_name, value.last_name, value.address, value.city, value.state,
-                                  value.pin, value.phone, value.email))
+                    print(value.as_string())
         except Exception as e:
             print(e)
             logging.exception(e)
@@ -100,11 +110,18 @@ class AddressBook:
         except Exception as e:
             logging.exception(e)
 
+    def get_cont_as_dict(self):
+        details_dict = {}
+        for key, value in self.contact_dict.items():
+            details_dict.update({value.first_name: value.get_cont_dict()})
+        return details_dict
+
 
 class MulAddressBooks:
 
     def __init__(self):
         self.address_book_dict = {}
+        self.json_dict = {}
 
     def add_address_book(self, address_book_object):
         """
@@ -127,7 +144,8 @@ class MulAddressBooks:
         """
         try:
             for key, value in self.address_book_dict.items():
-                print(key)
+                print("{:<15}".format('address book name'))
+                print("{:<15}".format(key))
         except Exception as e:
             logging.exception(e)
 
@@ -136,6 +154,24 @@ class MulAddressBooks:
         Function to delete address_book
         """
         self.address_book_dict.pop(name, "Address Book not present")
+
+    def write_to_json(self):
+        for cont_name, cont_obj in self.address_book_dict.items():
+            cont_dict = cont_obj.get_cont_as_dict()
+            self.json_dict.update({cont_name: cont_dict})
+            json_obj = json.dumps(self.json_dict, indent=4)
+            with open('contact.json', 'w') as writefile:
+                writefile.write(json_obj)
+
+    def write_to_csv(self):
+        with open('address_book.csv', 'w', newline='') as writefile:
+            field_names = ['first_name', 'last_name', 'address', 'city', 'state', 'pin', 'phone', 'email']
+            csv_writer = csv.DictWriter(writefile, fieldnames=field_names)
+            csv_writer.writeheader()
+            for cont_name, cont_obj in self.address_book_dict.items():
+                cont_dict = cont_obj.get_cont_as_dict()
+                for key, value in cont_dict.items():
+                    csv_writer.writerow(value)
 
 
 def add_contact():
@@ -169,6 +205,8 @@ def add_contact():
 
         address_book_object.add_contact(contact)
 
+        mul_address_book.write_to_json()
+        mul_address_book.write_to_csv()
     except Exception as e:
         print(e)
         logging.exception(e)
@@ -182,6 +220,7 @@ def display_names():
         address_book_name = input("Enter Address Book name : ")
         address_book_object = mul_address_book.get_address_book_object(address_book_name)
         address_book_object.display_names()
+
     except Exception as e:
         logging.exception(e)
 
@@ -194,6 +233,7 @@ def display_contacts():
         address_book_name = input("Enter Address Book name : ")
         address_book_object = mul_address_book.get_address_book_object(address_book_name)
         address_book_object.display_contacts()
+
     except Exception as e:
         logging.exception(e)
 
@@ -202,29 +242,42 @@ def update_contact():
     """
     Function to update contact
     """
-    try:
-        address_book_name = input("Enter Address Book name : ")
-        address_book_object = mul_address_book.get_address_book_object(address_book_name)
-        name = input("Enter contact name to update : ")
-        contact_object = address_book_object.get_contact_object(name)
-        if not contact_object:
-            print("Contact not present")
-        else:
+    address_book_name = input("Enter Address Book name : ")
+    address_book_object = mul_address_book.get_address_book_object(address_book_name)
+    name = input("Enter contact name to update : ")
+    contact_object = address_book_object.get_contact_object(name)
+    if not contact_object:
+        print("Contact not present")
+    else:
+        update_choice = int(input("1. Update address\n2. Update city\n3. Update state\n"
+                                  "4. Update pin\n2. Update phone\n3. Update email\n"
+                                  "Enter your choice : "))
+
+        if update_choice == 1:
             update_address = input("Enter new address to update : ")
+            contact_object.address = update_address
+        elif update_choice == 2:
             update_city = input("Enter new city to update : ")
+            contact_object.city = update_city
+        elif update_choice == 3:
             update_state = input("Enter new state to update : ")
+            contact_object.state = update_state
+        elif update_choice == 4:
             update_pin = int(input("Enter new pin to update : "))
+            contact_object.pin = update_pin
+        elif update_choice == 5:
             update_phone = int(input("Enter new phone to update : "))
+            contact_object.phone = update_phone
+        elif update_choice == 6:
             update_email = input("Enter new email id to update : ")
+            contact_object.email = update_email
 
-            update_dict = {"update_address": update_address, "update_city": update_city, "update_state": update_state,
-                           "update_pin": update_pin, "update_phone": update_phone,
-                           "update_email": update_email}
-
-            address_book_object.update_contact(contact_object, update_dict)
-    except Exception as e:
-        print(e)
-        logging.exception(e)
+    update_dict = {"update_address": 1, "update_city": 2, "update_state": 3,
+                   "update_pin": 4, "update_phone": 5,
+                   "update_email": 6}
+    address_book_object.update_contact(contact_object, update_dict)
+    mul_address_book.write_to_json()
+    mul_address_book.write_to_csv()
 
 
 def delete_contact():
@@ -236,6 +289,9 @@ def delete_contact():
         address_book_object = mul_address_book.get_address_book_object(address_book_name)
         name = input("Enter first name to delete contact : ")
         address_book_object.delete_contact(name)
+
+        mul_address_book.write_to_json()
+        mul_address_book.write_to_csv()
     except Exception as e:
         logging.exception(e)
 
@@ -244,7 +300,10 @@ def display_address_book_names():
     """
     Function to display address book names
     """
-    mul_address_book.display_address_book_names()
+    try:
+        mul_address_book.display_address_book_names()
+    except Exception as e:
+        logging.exception(e)
 
 
 def delete_address_book():
@@ -254,6 +313,35 @@ def delete_address_book():
     try:
         address_book_name = input("Enter Address Book name : ")
         mul_address_book.delete_address_book(address_book_name)
+
+        mul_address_book.write_to_json()
+        mul_address_book.write_to_csv()
+    except Exception as e:
+        logging.exception(e)
+
+
+def read_from_json():
+    try:
+        if os.path.getsize('contact.json') == 0:
+            print("--> File not exist <--")
+        else:
+            with open('contact.json', 'r') as read_file:
+                json_reader = json.load(read_file)
+                print(json_reader)
+
+    except Exception as e:
+        logging.exception(e)
+
+
+def read_from_csv():
+    try:
+        if os.path.getsize('contact.json') == 0:
+            print("--> File not exist <--")
+        else:
+            with open('address_book.csv', 'r') as csvfile:
+                csv_obj = csv.DictReader(csvfile)
+                for rows in csv_obj:
+                    print(rows)
     except Exception as e:
         logging.exception(e)
 
@@ -265,13 +353,15 @@ if __name__ == "__main__":
         while True:
             choice = int(input("1. Add contact into address book\n2. Display names in address book\n"
                                "3. Display contact info\n4. Update contact\n5. Delete contact\n"
-                               "6. Display address book names\n7. Delete an Address Book\n8. 0 to Exit\nEnter your choice: "))
+                               "6. Display address book names\n7. Delete an Address Book\n8. Read from json\n"
+                               "9. Read from csv\n10. 0 to Exit\nEnter your choice: "))
 
             choice_dictionary = {1: add_contact, 2: display_names, 3: display_contacts, 4: update_contact,
-                                 5: delete_contact, 6: display_address_book_names, 7: delete_address_book}
+                                 5: delete_contact, 6: display_address_book_names, 7: delete_address_book,
+                                 8: read_from_json, 9: read_from_csv}
             if choice == 0:
                 break
-            elif choice > 8:
+            elif choice > 10:
                 print("Please enter correct choice")
             else:
                 choice_dictionary.get(choice)()
