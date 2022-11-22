@@ -23,8 +23,9 @@ class Contact:
                 'state': self.state, 'pin': self.pin, 'phone': self.phone, 'email': self.email}
 
     def as_string(self):
-        return "{:<12}{:<12}{:<12}{:<12}{:<12}{:<12}{:<12}{:<12}"\
-            .format(self.first_name, self.last_name, self.address, self.city, self.state, self.pin, self.phone, self.email)
+        return "{:<12}{:<12}{:<12}{:<12}{:<12}{:<12}{:<12}{:<12}" \
+            .format(self.first_name, self.last_name, self.address, self.city, self.state, self.pin, self.phone,
+                    self.email)
 
 
 class AddressBook:
@@ -156,23 +157,35 @@ class MulAddressBooks:
         self.address_book_dict.pop(name, "Address Book not present")
 
     def write_to_json(self):
-        for cont_name, cont_obj in self.address_book_dict.items():
-            cont_dict = cont_obj.get_cont_as_dict()
-            self.json_dict.update({cont_name: cont_dict})
-            json_obj = json.dumps(self.json_dict, indent=4)
-            with open('contact.json', 'w') as writefile:
-                writefile.write(json_obj)
-
-    def write_to_csv(self):
-        with open('address_book.csv', 'w', newline='') as writefile:
-            field_names = ['first_name', 'last_name', 'address', 'city', 'state', 'pin', 'phone', 'email']
-            csv_writer = csv.DictWriter(writefile, fieldnames=field_names)
-            csv_writer.writeheader()
+        """
+        Function to write Details to json File
+        """
+        try:
             for cont_name, cont_obj in self.address_book_dict.items():
                 cont_dict = cont_obj.get_cont_as_dict()
-                for key, value in cont_dict.items():
-                    csv_writer.writerow(value)
+                self.json_dict.update({cont_name: cont_dict})
+                json_obj = json.dumps(self.json_dict, indent=4)
+                with open('contact.json', 'w') as writefile:
+                    writefile.write(json_obj)
+        except Exception as e:
+            logging.exception(e)
 
+    def write_to_csv(self):
+        """
+        Function to write Details to csv File
+        """
+        try:
+            with open('address_book.csv', 'w', newline='') as writefile:
+                field_names = ['first_name', 'last_name', 'address', 'city', 'state', 'pin', 'phone', 'email']
+                csv_writer = csv.DictWriter(writefile, fieldnames=field_names)
+                csv_writer.writeheader()
+                for cont_name, cont_obj in self.address_book_dict.items():
+                    cont_dict = cont_obj.get_cont_as_dict()
+                    for key, value in cont_dict.items():
+                        csv_writer.writerow(value)
+        except Exception as e:
+            logging.exception(e)
+        
 
 def add_contact():
     """
@@ -321,6 +334,9 @@ def delete_address_book():
 
 
 def read_from_json():
+    """
+    Function to read json file
+    """
     try:
         if os.path.getsize('contact.json') == 0:
             print("--> File not exist <--")
@@ -334,6 +350,9 @@ def read_from_json():
 
 
 def read_from_csv():
+    """
+    Function to read csv file
+    """
     try:
         if os.path.getsize('contact.json') == 0:
             print("--> File not exist <--")
