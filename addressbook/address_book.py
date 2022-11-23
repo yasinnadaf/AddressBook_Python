@@ -321,6 +321,9 @@ def delete_address_book():
 
 
 def read_from_json():
+    """
+    Function to read from json file
+    """
     try:
         if os.path.getsize('contact.json') == 0:
             print("--> File not exist <--")
@@ -334,6 +337,9 @@ def read_from_json():
 
 
 def read_from_csv():
+    """
+    Function to read from csv file
+    """
     try:
         if os.path.getsize('contact.json') == 0:
             print("--> File not exist <--")
